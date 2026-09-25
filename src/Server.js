@@ -62,13 +62,13 @@ app.post("/produtos", async (req, res) => {
 
         res.status(500).json({
             mensagem: "Erro ao cadastrar produto"
-        });
+        }); 
     }
 });
 
 
 app.delete("/produtos/:id",async(req,res)=>{
-    try {
+    try { 
         const {id} = req.params
 
         await db.query("DELETE FROM produto WHERE id = ?",[id])
