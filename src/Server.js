@@ -22,7 +22,7 @@ app.get("/",(req,res)=>{
 app.get("/produtos", async (req,res)=>{
     try {
         const [produtos] = await db.query(
-            "SELECT * from produto"
+            "SELECT * from produtos"
         )
         res.json(produtos)
     } catch (error) {
@@ -34,10 +34,7 @@ app.post("/produtos", async (req, res) => {
     try {
         const { descricao, categoria, preco, imagem } = req.body;
 
-        const sql = `
-            INSERT INTO produto (descricao, categoria, preco, imagem)
-            VALUES (?, ?, ?, ?)
-        `;
+        const sql = `INSERT INTO produtos (descricao, categoria, preco, imagem) VALUES (?, ?, ?, ?)`;
 
         const [result] = await db.execute(sql, [
             descricao,
@@ -61,8 +58,10 @@ app.post("/produtos", async (req, res) => {
         console.error(error);
 
         res.status(500).json({
-            mensagem: "Erro ao cadastrar produto"
-        }); 
+        mensagem: "Erro ao cadastrar produto",
+        erro: error.message
+        });
+
     }
 });
 
@@ -71,7 +70,7 @@ app.delete("/produtos/:id",async(req,res)=>{
     try { 
         const {id} = req.params
 
-        await db.query("DELETE FROM produto WHERE id = ?",[id])
+        await db.query("DELETE FROM produtos WHERE id = ?",[id])
 
         res.json({mensagem:"Produto deletado com sucesso"})
 
