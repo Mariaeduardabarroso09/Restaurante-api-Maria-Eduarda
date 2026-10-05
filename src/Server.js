@@ -8,6 +8,8 @@ const jwt = require("jsonwebtoken")
 const auth = require("./middleware/auth")
 const app = express()
 
+const bcrypt = require("bcrypt")
+
 const PORT = 3001
 
 
@@ -21,6 +23,51 @@ app.get("/",(req,res)=>{
     })
 })
 
+app.post("/register",async(req,res)=>{
+
+    try{
+
+        const{nome ,email ,senha} = req.body 
+         
+        if(!nome  || !email || !senha){
+          return res.status(400).json({
+            mensagem:"Preencha todos os campos"
+          })
+        }
+
+        const [usuarioExistente] = await db.query(
+            "SELECT id FROM usuario WHERE email = ?",
+            [email]
+        )
+
+        if(usuarioExistente.length > 0){
+            return res.status(400).json({
+                mensagem:"E-mail ja cadastrado"
+            })
+        }
+
+        const senhaHash = await bcrypt.hash(senha,10) 
+
+        await db.query(
+            "INSERT INTO usuario(nome, email,senha)VALUES(?,?,?)",
+            [nome,email,senhaHash] 
+        )
+
+        res.status(201).json({
+            mensagem:"Usuario cadastrado com sucesso" 
+        })
+
+    }catch (error) {
+        console.log(error)
+        res.status(500).json({
+            mensagem:"Erro interno"
+        })
+
+    }
+})
+
+
+
 
 app.post("/login", async (req, res)=>{
     const {email,senha} = req.body
@@ -31,19 +78,28 @@ app.post("/login", async (req, res)=>{
             [email]
         )
 
+
+
         if(usuarios.length == 0){
             return res.status(401).json({
-                mensagem:"Emal ou senha inválidos"
+                mensagem:"Email ou senha inválidos"
             })
         }
 
         const usuario = usuarios[0]
 
-        if(usuario.senha !== senha){
+        const senhaValida = await bcrypt.compare(
+            senha,
+            usuario.senha
+        )
+
+        if(!senhaValida){
             return res.status(401).json({
-                mensagem:"Email ou senha invalidos"
+                mensagem:"Senha Invalida"
             })
         }
+
+        
 
 
         const token = jwt.sign(
@@ -58,6 +114,7 @@ app.post("/login", async (req, res)=>{
         )
 
         res.json({
+            mensagem:"Login realizado",
             token
         })
 
@@ -73,7 +130,7 @@ app.post("/login", async (req, res)=>{
 app.get("/produtos", auth,async (req,res)=>{
     try {
         const [produtos] = await db.query(
-            "SELECT * from produto"
+            "SELECT * from produtos"
         )
         res.json(produtos)
     } catch (error) {
@@ -86,7 +143,7 @@ app.post("/produtos", async (req, res) => {
         const { descricao, categoria, preco, imagem } = req.body;
 
         const sql = `
-            INSERT INTO produto (descricao, categoria, preco, imagem)
+            INSERT INTO produtos (descricao, categoria, preco, imagem)
             VALUES (?, ?, ?, ?)
         `;
 
@@ -122,7 +179,7 @@ app.delete("/produtos/:id",async(req,res)=>{
     try {
         const {id} = req.params
 
-        await db.query("DELETE FROM produto WHERE id = ?",[id])
+        await db.query("DELETE FROM produtos WHERE id = ?",[id])
 
         res.json({mensagem:"Produto deletado com sucesso"})
 
